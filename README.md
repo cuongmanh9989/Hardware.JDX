@@ -1,4 +1,6 @@
-# Hardware.Info
+# Hardware.JDX
+
+Maintained by **JDX GROUP** — Copyright (c) 2026 JDX GROUP. Based on [Hardware.Info](https://github.com/Jinjinov/Hardware.Info) by Jinjinov, used under the MIT License (see [LICENSE](LICENSE)).
 
 Battery, BIOS, CPU - processor, storage drive, keyboard, RAM - memory, monitor, motherboard, mouse, NIC - network adapter, printer, sound card - audio card, graphics card - video card. Hardware.Info is a .NET Standard 2.0 library and uses WMI on Windows, /dev, /proc, /sys on Linux and sysctl, system_profiler on macOS.
 

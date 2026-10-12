@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Hardware.Info.Wpf</RootNamespace>
+    <AssemblyName>Hardware.Info.Wpf</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hardware.Info\Hardware.Info.csproj" />
+  </ItemGroup>
+
+</Project>

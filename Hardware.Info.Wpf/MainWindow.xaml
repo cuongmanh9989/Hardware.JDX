@@ -1,0 +1,62 @@
+<Window x:Class="Hardware.Info.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Hardware.Info.Wpf"
+        Title="Hardware.JDX - Thông tin phần cứng" Height="720" Width="980"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <!-- Thanh công cụ -->
+        <ToolBarTray DockPanel.Dock="Top">
+            <ToolBar>
+                <Button x:Name="RefreshButton" Content="⟳ Làm mới" Click="RefreshButton_Click" Padding="8,2"/>
+                <Separator/>
+                <Button Content="Mở rộng tất cả" Click="ExpandAll_Click" Padding="8,2"/>
+                <Button Content="Thu gọn tất cả" Click="CollapseAll_Click" Padding="8,2"/>
+                <Separator/>
+                <Button Content="Sao chép văn bản" Click="CopyButton_Click" Padding="8,2"/>
+                <Separator/>
+                <CheckBox x:Name="LiveCountersCheck" Content="Đo tải CPU / băng thông mạng (chậm hơn)" IsChecked="True"
+                          VerticalAlignment="Center" Margin="4,0"/>
+            </ToolBar>
+        </ToolBarTray>
+
+        <!-- Thanh trạng thái -->
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" Text="Sẵn sàng"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <ProgressBar x:Name="Progress" Width="160" Height="12" Minimum="0" Maximum="1" Visibility="Collapsed"/>
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- Cây phần cứng -->
+        <TreeView x:Name="HardwareTree" BorderThickness="0" Padding="4">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                </Style>
+            </TreeView.ItemContainerStyle>
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate DataType="{x:Type local:TreeNode}" ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal" Margin="0,1">
+                        <TextBlock Text="{Binding Icon}" Margin="0,0,6,0"/>
+                        <TextBlock Text="{Binding Header}" FontWeight="SemiBold"/>
+                        <TextBlock Text=": " Foreground="Gray">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Value}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding Value}" Foreground="#1F6FB2"/>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+    </DockPanel>
+</Window>

@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardware.Info.Aot.Benchmark
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardware.Info.NuGet.Test", "Hardware.Info.NuGet.Test\Hardware.Info.NuGet.Test.csproj", "{7A160785-4667-CCE1-64F5-01E1C2D71129}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hardware.Info.Wpf", "Hardware.Info.Wpf\Hardware.Info.Wpf.csproj", "{9CF5056E-6E24-43BC-890E-1152D51C84BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,6 +59,10 @@ Global
 		{7A160785-4667-CCE1-64F5-01E1C2D71129}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7A160785-4667-CCE1-64F5-01E1C2D71129}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A160785-4667-CCE1-64F5-01E1C2D71129}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CF5056E-6E24-43BC-890E-1152D51C84BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CF5056E-6E24-43BC-890E-1152D51C84BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CF5056E-6E24-43BC-890E-1152D51C84BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CF5056E-6E24-43BC-890E-1152D51C84BE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
