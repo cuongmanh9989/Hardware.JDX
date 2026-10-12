@@ -40,6 +40,7 @@ namespace Hardware.Info.Wpf
                 new Category("💾", "Ổ đĩa", hw.RefreshDriveList, () => hw.DriveList),
                 new Category("🎮", "GPU - Card đồ họa", () => hw.RefreshVideoControllerList(), () => hw.VideoControllerList),
                 new Category("🧩", "Mainboard", hw.RefreshMotherboardList, () => hw.MotherboardList),
+                new Category("🌀", "Quạt & nhiệt độ (WMI)", () => { }, FanTemperatureReader.Read),
                 new Category("🔧", "BIOS", hw.RefreshBIOSList, () => hw.BiosList),
                 new Category("🏷", "Hệ thống máy tính", hw.RefreshComputerSystemList, () => hw.ComputerSystemList),
                 new Category("🖵", "Màn hình", hw.RefreshMonitorList, () => hw.MonitorList),
@@ -160,7 +161,7 @@ namespace Hardware.Info.Wpf
         }
 
         /// <summary>Đổi số byte sang KB/MB/GB/TB.</summary>
-        private static string FormatBytes(double bytes)
+        internal static string FormatBytes(double bytes)
         {
             string[] units = { "B", "KB", "MB", "GB", "TB", "PB" };
             int unit = 0;

@@ -15,6 +15,8 @@
                 <Separator/>
                 <Button Content="Sao chép văn bản" Click="CopyButton_Click" Padding="8,2"/>
                 <Separator/>
+                <Button x:Name="AdminButton" Content="🛡 Chạy với quyền Admin" Click="AdminButton_Click" Padding="8,2"/>
+                <Separator/>
                 <CheckBox x:Name="LiveCountersCheck" Content="Đo tải CPU / băng thông mạng (chậm hơn)" IsChecked="True"
                           VerticalAlignment="Center" Margin="4,0"/>
             </ToolBar>

@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -22,14 +25,57 @@ namespace Hardware.Info.Wpf
         /// <summary>Đang làm mới hay không (chặn bấm trùng).</summary>
         private bool _isBusy;
 
+        /// <summary>Đường dẫn gốc của nhóm tổng hợp (dùng khôi phục trạng thái mở/đóng).</summary>
+        private const string SummaryPath = "Tổng hợp linh kiện (chuẩn hóa)";
+
         public MainWindow()
         {
             InitializeComponent();
+            ConfigureAdminButton();
             HardwareTree.ItemsSource = _roots;
             Loaded += async (_, __) => await RefreshAsync(firstLoad: true);
         }
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await RefreshAsync(firstLoad: false);
+
+        /// <summary>Hiển thị trạng thái quyền hiện tại trên nút Admin.</summary>
+        private void ConfigureAdminButton()
+        {
+            if (IsAdministrator())
+            {
+                AdminButton.Content = "✔ Đang chạy quyền Admin";
+                AdminButton.IsEnabled = false;
+            }
+        }
+
+        private static bool IsAdministrator()
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        /// <summary>Khởi động lại app với quyền Admin (hiện hộp thoại UAC); nếu người dùng từ chối thì giữ nguyên app hiện tại.</summary>
+        private void AdminButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = Environment.ProcessPath ?? throw new InvalidOperationException("Không xác định được đường dẫn file chạy."),
+                    UseShellExecute = true,
+                    Verb = "runas"
+                });
+                Application.Current.Shutdown();
+            }
+            catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
+            {
+                StatusText.Text = "Đã hủy yêu cầu quyền Admin";
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = "Không khởi động lại được với quyền Admin: " + ex.Message;
+            }
+        }
 
         private void ExpandAll_Click(object sender, RoutedEventArgs e)
         {
@@ -70,6 +116,10 @@ namespace Hardware.Info.Wpf
 
             try
             {
+                // Vị trí 0 dành cho nhóm "Tổng hợp linh kiện"; các nhóm chi tiết bắt đầu từ vị trí 1
+                if (_roots.Count == 0)
+                    _roots.Add(new TreeNode { Icon = "📋", Header = "Tổng hợp linh kiện (chuẩn hóa)", Value = "đang đọc...", Path = SummaryPath });
+
                 for (int i = 0; i < categories.Count; i++)
                 {
                     HardwareTreeBuilder.Category category = categories[i];
@@ -95,11 +145,20 @@ namespace Hardware.Info.Wpf
                     if (firstLoad) node.IsExpanded = true;
                     else RestoreExpanded(node, expanded);
 
-                    if (i < _roots.Count) _roots[i] = node;
+                    int position = i + 1;
+                    if (position < _roots.Count) _roots[position] = node;
                     else _roots.Add(node);
 
-                    Progress.Value = (i + 1d) / categories.Count;
+                    Progress.Value = (i + 1d) / (categories.Count + 1);
                 }
+
+                // Tổng hợp sau cùng vì cần dữ liệu đã làm mới của các nhóm trên
+                StatusText.Text = "Đang tổng hợp linh kiện...";
+                TreeNode summary = await Task.Run(() => ComponentSummaryCollector.BuildTree(_hardwareInfo));
+                if (firstLoad) summary.IsExpanded = true;
+                else RestoreExpanded(summary, expanded);
+                _roots[0] = summary;
+                Progress.Value = 1;
 
                 StatusText.Text = $"Hoàn tất lúc {DateTime.Now:HH:mm:ss}";
             }

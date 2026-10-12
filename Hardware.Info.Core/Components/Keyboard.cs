@@ -30,6 +30,26 @@ namespace Hardware.Info
         public UInt16 NumberOfFunctionKeys { get; set; }
 
         /// <summary>
+        /// Windows Plug and Play device ID (Win32_Keyboard.PNPDeviceID).
+        /// </summary>
+        public string PNPDeviceID { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Real product name reported by the USB device itself (for example "USB Keyboard"), empty if unavailable. Windows only.
+        /// </summary>
+        public string ProductName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// USB vendor ID (VID) in hex, empty if unavailable. Windows only.
+        /// </summary>
+        public string VendorId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// USB product ID (PID) in hex, empty if unavailable. Windows only.
+        /// </summary>
+        public string ProductId { get; set; } = string.Empty;
+
+        /// <summary>
         /// Write all property values to a string
         /// </summary>
         /// <returns>Each property on a new line</returns>
@@ -39,7 +59,11 @@ namespace Hardware.Info
                 "Caption: " + Caption + Environment.NewLine +
                 "Description: " + Description + Environment.NewLine +
                 "Name: " + Name + Environment.NewLine +
-                "NumberOfFunctionKeys: " + NumberOfFunctionKeys + Environment.NewLine;
+                "NumberOfFunctionKeys: " + NumberOfFunctionKeys + Environment.NewLine +
+                "PNPDeviceID: " + PNPDeviceID + Environment.NewLine +
+                "ProductName: " + ProductName + Environment.NewLine +
+                "VendorId: " + VendorId + Environment.NewLine +
+                "ProductId: " + ProductId + Environment.NewLine;
         }
     }
 }

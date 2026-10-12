@@ -625,7 +625,7 @@ namespace Hardware.Info.Windows
         {
             List<Keyboard> keyboardList = new List<Keyboard>();
 
-            string queryString = "SELECT Caption, Description, Name, NumberOfFunctionKeys FROM Win32_Keyboard";
+            string queryString = "SELECT Caption, Description, Name, NumberOfFunctionKeys, PNPDeviceID FROM Win32_Keyboard";
 
             foreach (IWmiPropertySource mo in _wmiQueryProvider.Query(_managementScope, queryString))
             {
@@ -634,8 +634,15 @@ namespace Hardware.Info.Windows
                     Caption = GetPropertyString(mo["Caption"]),
                     Description = GetPropertyString(mo["Description"]),
                     Name = GetPropertyString(mo["Name"]),
-                    NumberOfFunctionKeys = GetPropertyValue<ushort>(mo["NumberOfFunctionKeys"])
+                    NumberOfFunctionKeys = GetPropertyValue<ushort>(mo["NumberOfFunctionKeys"]),
+                    PNPDeviceID = GetPropertyString(mo["PNPDeviceID"])
                 };
+
+                // WMI chỉ trả tên chung ("USB Input Device") → bổ sung tên thật và VID/PID từ Plug and Play
+                keyboard.ProductName = PnpDeviceInfo.GetBusReportedDescription(keyboard.PNPDeviceID);
+                PnpDeviceInfo.GetVendorProductId(keyboard.PNPDeviceID, out string vendorId, out string productId);
+                keyboard.VendorId = vendorId;
+                keyboard.ProductId = productId;
 
                 keyboardList.Add(keyboard);
             }
@@ -754,11 +761,19 @@ namespace Hardware.Info.Windows
             return motherboardList;
         }
 
+        // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        /// <summary>Số nút của chuột hệ thống (SM_CMOUSEBUTTONS).</summary>
+        private const int SM_CMOUSEBUTTONS = 43;
+
         public List<Mouse> GetMouseList()
         {
             List<Mouse> mouseList = new List<Mouse>();
 
-            string queryString = "SELECT Caption, Description, Manufacturer, Name, NumberOfButtons FROM Win32_PointingDevice";
+            string queryString = "SELECT Caption, Description, Manufacturer, Name, NumberOfButtons, PNPDeviceID FROM Win32_PointingDevice";
 
             foreach (IWmiPropertySource mo in _wmiQueryProvider.Query(_managementScope, queryString))
             {
@@ -768,8 +783,23 @@ namespace Hardware.Info.Windows
                     Description = GetPropertyString(mo["Description"]),
                     Manufacturer = GetPropertyString(mo["Manufacturer"]),
                     Name = GetPropertyString(mo["Name"]),
-                    NumberOfButtons = GetPropertyValue<byte>(mo["NumberOfButtons"])
+                    NumberOfButtons = GetPropertyValue<byte>(mo["NumberOfButtons"]),
+                    PNPDeviceID = GetPropertyString(mo["PNPDeviceID"])
                 };
+
+                // WMI chỉ trả tên chung ("USB Input Device") → bổ sung tên thật và VID/PID từ Plug and Play
+                mouse.ProductName = PnpDeviceInfo.GetBusReportedDescription(mouse.PNPDeviceID);
+                PnpDeviceInfo.GetVendorProductId(mouse.PNPDeviceID, out string vendorId, out string productId);
+                mouse.VendorId = vendorId;
+                mouse.ProductId = productId;
+
+                // WMI thường trả 0 nút với chuột HID → lấy số nút của chuột hệ thống (trừ chuột ảo Remote Desktop)
+                if (mouse.NumberOfButtons == 0 && !mouse.PNPDeviceID.StartsWith("TERMINPUT_BUS", StringComparison.OrdinalIgnoreCase))
+                {
+                    int buttons = GetSystemMetrics(SM_CMOUSEBUTTONS);
+                    if (buttons > 0 && buttons <= byte.MaxValue)
+                        mouse.NumberOfButtons = (byte)buttons;
+                }
 
                 mouseList.Add(mouse);
             }
