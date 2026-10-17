@@ -15,6 +15,9 @@
                 <Separator/>
                 <Button Content="Sao chép văn bản" Click="CopyButton_Click" Padding="8,2"/>
                 <Separator/>
+                <Button x:Name="PublishButton" Content="📤 Gửi Kafka ngay" Click="PublishButton_Click" Padding="8,2"
+                        ToolTip="Gửi thử một bản tin với dữ liệu đang hiển thị (không đọc lại phần cứng)"/>
+                <Separator/>
                 <Button x:Name="AdminButton" Content="🛡 Chạy với quyền Admin" Click="AdminButton_Click" Padding="8,2"/>
                 <Separator/>
                 <CheckBox x:Name="LiveCountersCheck" Content="Đo tải CPU / băng thông mạng (chậm hơn)" IsChecked="True"
@@ -32,33 +35,162 @@
             </StatusBarItem>
         </StatusBar>
 
-        <!-- Cây phần cứng -->
-        <TreeView x:Name="HardwareTree" BorderThickness="0" Padding="4">
-            <TreeView.ItemContainerStyle>
-                <Style TargetType="TreeViewItem">
-                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                </Style>
-            </TreeView.ItemContainerStyle>
-            <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate DataType="{x:Type local:TreeNode}" ItemsSource="{Binding Children}">
-                    <StackPanel Orientation="Horizontal" Margin="0,1">
-                        <TextBlock Text="{Binding Icon}" Margin="0,0,6,0"/>
-                        <TextBlock Text="{Binding Header}" FontWeight="SemiBold"/>
-                        <TextBlock Text=": " Foreground="Gray">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Value}" Value="">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <TextBlock Text="{Binding Value}" Foreground="#1F6FB2"/>
-                    </StackPanel>
-                </HierarchicalDataTemplate>
-            </TreeView.ItemTemplate>
-        </TreeView>
+        <TabControl x:Name="ViewTabs" BorderThickness="0">
+            <!-- Tab bảng tổng hợp linh kiện -->
+            <TabItem x:Name="SummaryTab" Header="📋 Tổng hợp linh kiện">
+                <DataGrid x:Name="SummaryGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                          RowHeight="52" CanUserResizeRows="False"
+                          HeadersVisibility="Column" GridLinesVisibility="Horizontal" AlternatingRowBackground="#F5F8FB"
+                          CanUserSortColumns="False" SelectionUnit="Cell" ClipboardCopyMode="ExcludeHeader" BorderThickness="0">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="4,3"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.Resources>
+                        <Style x:Key="WrapCell" TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            <!-- 3 dòng x 16px = 48px; dòng cố định để chiều cao ô đúng 3 dòng chữ -->
+                            <Setter Property="LineStackingStrategy" Value="BlockLineHeight"/>
+                            <Setter Property="LineHeight" Value="16"/>
+                            <Setter Property="MaxHeight" Value="48"/>
+                            <Setter Property="Margin" Value="4,2"/>
+                            <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+                        </Style>
+                    </DataGrid.Resources>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Type}" Width="130" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Loại linh kiện" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Type" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Type" MinWidth="50" ToolTip="Lọc theo Loại linh kiện (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Vendor}" Width="130" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Hãng sản xuất" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Vendor" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Vendor" MinWidth="50" ToolTip="Lọc theo Hãng sản xuất (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Product}" Width="200" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Dòng sản phẩm" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Product" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Product" MinWidth="50" ToolTip="Lọc theo Dòng sản phẩm (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Year}" Width="110" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Năm sản xuất" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Year" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Year" MinWidth="50" ToolTip="Lọc theo Năm sản xuất (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Spec}" Width="170" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Cấu hình" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Spec" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Spec" MinWidth="40" ToolTip="Lọc theo Cấu hình (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Serial}" Width="150" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="S/N hoặc IMEI" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Serial" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Serial" MinWidth="50" ToolTip="Lọc theo S/N hoặc IMEI (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Identifier}" Width="200" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="ID định danh" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Identifier" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Identifier" MinWidth="50" ToolTip="Lọc theo ID định danh (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding Config}" Width="280" ElementStyle="{StaticResource WrapCell}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Cấu hình chi tiết" FontWeight="SemiBold"/>
+                                    <DockPanel Margin="0,3,0,0">
+                                        <Button DockPanel.Dock="Right" Tag="Config" Content="▼" FontSize="9" Padding="4,0" Margin="3,0,0,0" Background="Transparent"
+                                                Foreground="Gray" ToolTip="Chọn giá trị cần hiển thị" Click="ValueFilterButton_Click"/>
+                                        <TextBox Tag="Config" MinWidth="50" ToolTip="Lọc theo Cấu hình chi tiết (chứa chuỗi, không phân biệt hoa thường)" TextChanged="FilterBox_TextChanged"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </TabItem>
+
+            <!-- Tab cây phần cứng chi tiết -->
+            <TabItem Header="🖥 Chi tiết phần cứng">
+                <TreeView x:Name="HardwareTree" BorderThickness="0" Padding="4">
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="TreeViewItem">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate DataType="{x:Type local:TreeNode}" ItemsSource="{Binding Children}">
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="{Binding Icon}" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold"/>
+                                <TextBlock Text=": " Foreground="Gray">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Value}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{Binding Value}" Foreground="#1F6FB2"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>

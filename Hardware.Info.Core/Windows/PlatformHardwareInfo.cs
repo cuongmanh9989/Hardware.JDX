@@ -654,7 +654,7 @@ namespace Hardware.Info.Windows
         {
             List<Memory> memoryList = new List<Memory>();
 
-            string queryString = _os.Version.Major >= 10 ? "SELECT BankLabel, Capacity, DataWidth, FormFactor, Manufacturer, MaxVoltage, MinVoltage, PartNumber, SerialNumber, SMBIOSMemoryType, Speed FROM Win32_PhysicalMemory"
+            string queryString = _os.Version.Major >= 10 ? "SELECT BankLabel, Capacity, DataWidth, FormFactor, Manufacturer, MaxVoltage, MinVoltage, PartNumber, SerialNumber, SMBIOSMemoryType, Speed, ConfiguredClockSpeed FROM Win32_PhysicalMemory"
                                                          : "SELECT BankLabel, Capacity, DataWidth, FormFactor, Manufacturer, PartNumber, SerialNumber, Speed FROM Win32_PhysicalMemory";
 
             foreach (IWmiPropertySource mo in _wmiQueryProvider.Query(_managementScope, queryString))
@@ -677,6 +677,7 @@ namespace Hardware.Info.Windows
                     memory.MinVoltage = GetPropertyValue<uint>(mo["MinVoltage"]);
                     
                     memory.MemoryType = (MemoryType)GetPropertyValue<uint>(mo["SMBIOSMemoryType"]);
+                    memory.ConfiguredClockSpeed = GetPropertyValue<uint>(mo["ConfiguredClockSpeed"]);
                 }
 
                 memoryList.Add(memory);

@@ -9,7 +9,7 @@ namespace Hardware.Info.Windows
     /// WMI Win32_Keyboard / Win32_PointingDevice chỉ trả tên chung ("USB Input Device"), còn tên do thiết bị tự khai báo
     /// nằm ở thuộc tính BusReportedDeviceDesc của thiết bị USB cha. Không cần quyền Administrator.
     /// </summary>
-    internal static class PnpDeviceInfo
+    public static class PnpDeviceInfo
     {
         /// <summary>Khóa thuộc tính PnP (GUID + số thứ tự) — tương ứng DEVPROPKEY trong Windows SDK.</summary>
         [StructLayout(LayoutKind.Sequential)]
@@ -79,6 +79,52 @@ namespace Hardware.Info.Windows
             catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
             {
                 // Hệ thống không có cfgmgr32: bỏ qua, giữ tên WMI
+            }
+
+            return string.Empty;
+        }
+
+        [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
+        private static extern uint CM_Get_Device_IDW(uint devInst, System.Text.StringBuilder buffer, int bufferLen, uint flags);
+
+        private static readonly Regex UsbDeviceRegex = new Regex(@"^USB\\VID_[0-9A-F]{4}&PID_[0-9A-F]{4}\\([^\\]+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>
+        /// S/N của thiết bị USB vật lý chứa thiết bị HID này: đi ngược lên thiết bị cha tới "USB\VID_xxxx&amp;PID_xxxx\&lt;S/N&gt;"
+        /// (bỏ qua giao diện con "&amp;MI_xx"). Chuỗi do Windows tự sinh (có '&amp;') nghĩa là thiết bị không có S/N → trả rỗng.
+        /// Cách này đúng cho từng thiết bị, không nhầm khi có nhiều thiết bị cùng VID:PID.
+        /// </summary>
+        public static string GetUsbSerial(string pnpDeviceId)
+        {
+            if (string.IsNullOrEmpty(pnpDeviceId))
+                return string.Empty;
+
+            try
+            {
+                if (CM_Locate_DevNodeW(out uint devInst, pnpDeviceId, 0) != CR_SUCCESS)
+                    return string.Empty;
+
+                for (int level = 0; level < MaxParentLevels + 1; level++)
+                {
+                    var id = new System.Text.StringBuilder(512);
+                    if (CM_Get_Device_IDW(devInst, id, id.Capacity, 0) == CR_SUCCESS)
+                    {
+                        Match match = UsbDeviceRegex.Match(id.ToString());
+                        if (match.Success)
+                        {
+                            string serial = match.Groups[1].Value;
+                            return serial.Contains("&") ? string.Empty : serial;
+                        }
+                    }
+
+                    if (CM_Get_Parent(out uint parent, devInst, 0) != CR_SUCCESS)
+                        break;
+
+                    devInst = parent;
+                }
+            }
+            catch (Exception ex) when (ex is DllNotFoundException || ex is EntryPointNotFoundException)
+            {
             }
 
             return string.Empty;

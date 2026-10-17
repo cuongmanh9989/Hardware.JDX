@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Hardware.Info.Service</RootNamespace>
+    <AssemblyName>Hardware.Info.Service</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+    <PackageReference Include="RAMSPDToolkit" Version="1.6.2" />
+    <PackageReference Include="Confluent.Kafka" Version="2.16.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hardware.Info\Hardware.Info.csproj" />
+  </ItemGroup>
+
+  <!-- Dùng chung mã thu thập và gửi Kafka với app WPF (các file này không phụ thuộc WPF) -->
+  <ItemGroup>
+    <Compile Include="..\Hardware.Info.Wpf\TreeNode.cs" Link="Shared\TreeNode.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\EdidReader.cs" Link="Shared\EdidReader.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\FanTemperatureReader.cs" Link="Shared\FanTemperatureReader.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\HardwareTreeBuilder.cs" Link="Shared\HardwareTreeBuilder.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\VendorTables.cs" Link="Shared\VendorTables.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\ComponentSummaryCollector.cs" Link="Shared\ComponentSummaryCollector.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\SpdSerialReader.cs" Link="Shared\SpdSerialReader.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\LowPriority.cs" Link="Shared\LowPriority.cs" />
+    <Compile Include="..\Hardware.Info.Wpf\DeviceInfoPublisher.cs" Link="Shared\DeviceInfoPublisher.cs" />
+  </ItemGroup>
+
+  <!-- Script cài/gỡ service đi kèm file chạy -->
+  <ItemGroup>
+    <Content Include="install-service.bat" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="uninstall-service.bat" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Cùng một appsettings.json với app WPF để chỉ phải sửa cấu hình ở một nơi -->
+  <ItemGroup>
+    <Content Include="..\Hardware.Info.Wpf\appsettings.json" Link="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

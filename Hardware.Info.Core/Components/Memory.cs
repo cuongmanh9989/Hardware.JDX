@@ -381,6 +381,11 @@ namespace Hardware.Info
         public UInt32 Speed { get; set; }
 
         /// <summary>
+        /// Tốc độ BIOS đang cấu hình thực tế (MHz); 0 nếu hệ điều hành không cung cấp.
+        /// </summary>
+        public UInt32 ConfiguredClockSpeed { get; set; }
+
+        /// <summary>
         /// Write all property values to a string
         /// </summary>
         /// <returns>Each property on a new line</returns>
