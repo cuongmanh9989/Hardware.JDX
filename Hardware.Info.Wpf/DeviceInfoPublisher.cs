@@ -17,16 +17,38 @@ namespace Hardware.Info.Wpf
 {
     /// <summary>
     /// Cấu hình gửi báo cáo, đọc từ mục Kafka:DeviceInfo trong appsettings.json cạnh file chạy.
-    /// <c>Transport</c> = <c>Kafka</c> (mặc định, gửi thẳng broker, chỉ trong VPN) hoặc <c>Http</c> (gửi HTTPS ký HMAC tới TaiSanApi,
-    /// dùng được ngoài VPN; cần mục DeviceReport:Url và DeviceReport:SharedKey).
+    /// <c>Transport</c> = <c>Http</c> (MẶC ĐỊNH từ bản hotfix 22/10/2026: gửi HTTPS ký HMAC tới TaiSanApi, dùng được ngoài VPN) hoặc
+    /// <c>Kafka</c> (gửi thẳng broker, chỉ trong VPN). Địa chỉ và khóa chung có giá trị NHÚNG SẴN trong code; mục DeviceReport:Url /
+    /// DeviceReport:SharedKey trong appsettings.json (nếu có và không rỗng) sẽ ghi đè giá trị nhúng sẵn.
     /// </summary>
     public sealed class DeviceInfoPublisherOptions
     {
         public const string TransportKafka = "Kafka";
         public const string TransportHttp = "Http";
 
+        /// <summary>Địa chỉ nhận báo cáo của TaiSanApi nhúng sẵn (hotfix 22/10/2026); appsettings.json DeviceReport:Url ghi đè nếu có.</summary>
+        public const string DefaultDeviceReportUrl = "https://taisanapi.vtax.id.vn/api/taisan/v1/device-reports";
+
+        /// <summary>
+        /// Khóa chung HMAC nhúng sẵn theo quyết định chủ dự án (hotfix 22/10/2026): khóa nằm trong source và file chạy nên ai có file đều trích
+        /// được, mọi máy dùng chung một khóa. Phải KHỚP DeviceReport:SharedKeys (Docker secret device_report_shared_key) của TaiSanApi.
+        /// Muốn đổi khóa: sửa hằng số này (hoặc đặt DeviceReport:SharedKey trong appsettings.json) và đổi secret phía máy chủ cho khớp.
+        /// </summary>
+        public const string DefaultDeviceReportSharedKey = "a3403b6806b952f302d3133653633960dea13ff93f2b3e00";
+
         /// <summary>Kafka (mặc định, giữ hành vi cũ) hoặc Http.</summary>
-        public string Transport { get; set; } = TransportKafka;
+        public string Transport { get; set; } = TransportHttp;
+
+        /// <summary>https luôn được phép; http chỉ cho loopback/IP mạng nội bộ (máy chủ dev TaiSanApi chỉ nghe http), tránh gửi chữ ký qua Internet không mã hóa.</summary>
+        private static bool IsAllowedReportUri(Uri uri)
+        {
+            if (uri.Scheme == Uri.UriSchemeHttps) return true;
+            if (uri.Scheme != Uri.UriSchemeHttp) return false;
+            if (uri.IsLoopback) return true;
+            if (!System.Net.IPAddress.TryParse(uri.Host, out System.Net.IPAddress? ip) || ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return false;
+            byte[] b = ip.GetAddressBytes();
+            return b[0] == 10 || (b[0] == 172 && b[1] >= 16 && b[1] <= 31) || (b[0] == 192 && b[1] == 168) || (b[0] == 100 && b[1] >= 64 && b[1] <= 127);
+        }
 
         /// <summary>Địa chỉ endpoint nhận báo cáo (https), từ DeviceReport:Url. Chỉ dùng khi Transport=Http.</summary>
         [System.Text.Json.Serialization.JsonIgnore]
@@ -81,16 +103,17 @@ namespace Hardware.Info.Wpf
                 if (options.UseHttp)
                 {
                     // Kênh HTTPS: không cần broker; cần địa chỉ https và khóa chung
-                    if (!doc.RootElement.TryGetProperty("DeviceReport", out JsonElement report) || report.ValueKind != JsonValueKind.Object)
+                    string configuredUrl = string.Empty, configuredKey = string.Empty;
+                    if (doc.RootElement.TryGetProperty("DeviceReport", out JsonElement report) && report.ValueKind == JsonValueKind.Object)
                     {
-                        error = "appsettings.json thiếu mục DeviceReport (Url, SharedKey) cho Transport=Http";
-                        return null;
+                        configuredUrl = (report.TryGetProperty("Url", out JsonElement url) && url.ValueKind == JsonValueKind.String ? url.GetString() : null)?.Trim() ?? string.Empty;
+                        configuredKey = (report.TryGetProperty("SharedKey", out JsonElement key) && key.ValueKind == JsonValueKind.String ? key.GetString() : null)?.Trim() ?? string.Empty;
                     }
-                    options.DeviceReportUrl = (report.TryGetProperty("Url", out JsonElement url) && url.ValueKind == JsonValueKind.String ? url.GetString() : null)?.Trim() ?? string.Empty;
-                    options.DeviceReportSharedKey = (report.TryGetProperty("SharedKey", out JsonElement key) && key.ValueKind == JsonValueKind.String ? key.GetString() : null)?.Trim() ?? string.Empty;
-                    if (!Uri.TryCreate(options.DeviceReportUrl, UriKind.Absolute, out Uri? uri) || uri.Scheme != Uri.UriSchemeHttps)
+                    options.DeviceReportUrl = configuredUrl.Length > 0 ? configuredUrl : DefaultDeviceReportUrl;
+                    options.DeviceReportSharedKey = configuredKey.Length > 0 ? configuredKey : DefaultDeviceReportSharedKey;
+                    if (!Uri.TryCreate(options.DeviceReportUrl, UriKind.Absolute, out Uri? uri) || !IsAllowedReportUri(uri))
                     {
-                        error = "DeviceReport:Url phải là địa chỉ https hợp lệ khi Transport=Http";
+                        error = "DeviceReport:Url phải là địa chỉ https hợp lệ (http chỉ được dùng cho địa chỉ nội bộ/loopback khi thử nghiệm) khi Transport=Http";
                         return null;
                     }
                     if (options.DeviceReportSharedKey.Length < MinSharedKeyLength)
